@@ -49,22 +49,28 @@ export function updateMetarUI(data) {
     const el = document.getElementById("metar");
     if (!el) return;
 
-    if (!data || !data.raw) {
+    // Vérification structure CheckWX
+    if (!data || !data.data || !data.data[0] || !data.data[0].raw_text) {
         el.innerText = "METAR indisponible";
         drawRunway("UNKNOWN", window.runwayLayer);
         drawCorridor("UNKNOWN", window.corridorLayer);
         return;
     }
 
-    el.innerText = data.raw;
+    const metar = data.data[0];
 
-    const windDir = data.wind_direction?.value;
-    const windSpeed = data.wind_speed?.value;
+    // Affichage texte
+    el.innerText = metar.raw_text;
 
+    // Extraction vent
+    const windDir = metar.wind?.degrees;
+    const windSpeed = metar.wind?.speed_kts;
+
+    // Calcul piste
     const runway = getRunwayFromWind(windDir);
     const { crosswind } = computeCrosswind(
-        windDir, 
-        windSpeed, 
+        windDir,
+        windSpeed,
         RUNWAYS[runway]?.heading
     );
 
