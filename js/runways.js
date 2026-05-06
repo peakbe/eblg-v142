@@ -11,57 +11,95 @@ export const RUNWAYS = {
     "22": {
         id: "22",
         heading: 220,
-        start: [50.64834, 5.46639], // seuil 22
-        end:   [50.64186, 5.44028]  // seuil 04
+        start: [50.64834, 5.46639],
+        end:   [50.64186, 5.44028]
     },
     "04": {
         id: "04",
         heading: 40,
-        start: [50.64186, 5.44028], // seuil 04
-        end:   [50.64834, 5.46639]  // seuil 22
+        start: [50.64186, 5.44028],
+        end:   [50.64834, 5.46639]
     }
 };
 
-// ------------------------------------------------------
-// Détermination piste active selon direction du vent
-// ------------------------------------------------------
 export function getRunwayFromWind(windDir) {
-    if (!windDir && windDir !== 0) return "22"; // fallback
-
-    // Différence angulaire
-    const diff22 = Math.abs(windDir - RUNWAYS["22"].heading);
-    const diff04 = Math.abs(windDir - RUNWAYS["04"].heading);
-
-    // Normalisation (ex : 350° vs 10°)
-    const norm22 = Math.min(diff22, 360 - diff22);
-    const norm04 = Math.min(diff04, 360 - diff04);
-
-    return norm22 < norm04 ? "22" : "04";
+    if (windDir == null) return "22";
+    const d22 = Math.abs(windDir - RUNWAYS["22"].heading);
+    const d04 = Math.abs(windDir - RUNWAYS["04"].heading);
+    const n22 = Math.min(d22, 360 - d22);
+    const n04 = Math.min(d04, 360 - d04);
+    return n22 < n04 ? "22" : "04";
 }
 
-// ------------------------------------------------------
-// Calcul crosswind (vent traversier)
-// ------------------------------------------------------
-export function computeCrosswind(windDir, windSpeed, runwayHeading) {
-    if (!windDir || !windSpeed || !runwayHeading) {
-        return { crosswind: 0, headwind: 0 };
-    }
-
-    const angle = (windDir - runwayHeading) * (Math.PI / 180);
-
-    const crosswind = Math.abs(Math.sin(angle) * windSpeed);
-    const headwind = Math.cos(angle) * windSpeed;
-
-    return { crosswind, headwind };
-}
-
-// ------------------------------------------------------
-// Mise à jour panneau piste (UI)
-// ------------------------------------------------------
 export function updateRunwayPanel(runway, windDir, windSpeed, crosswind = 0) {
     const el = document.getElementById("runway-active");
     if (!el) return;
+    el.innerHTML = `
+        <b>Piste active :</b> ${runway}<br>
+        Vent : ${windDir ?? "—"}° / ${windSpeed ?? "—"} kt<br>
+        Crosswind : ${crosswind.toFixed(1)} kt
+    `;
+}export const RUNWAYS = {
+    "22": {
+        id: "22",
+        heading: 220,
+        start: [50.64834, 5.46639],
+        end:   [50.64186, 5.44028]
+    },
+    "04": {
+        id: "04",
+        heading: 40,
+        start: [50.64186, 5.44028],
+        end:   [50.64834, 5.46639]
+    }
+};
 
+export function getRunwayFromWind(windDir) {
+    if (windDir == null) return "22";
+    const d22 = Math.abs(windDir - RUNWAYS["22"].heading);
+    const d04 = Math.abs(windDir - RUNWAYS["04"].heading);
+    const n22 = Math.min(d22, 360 - d22);
+    const n04 = Math.min(d04, 360 - d04);
+    return n22 < n04 ? "22" : "04";
+}
+
+export function updateRunwayPanel(runway, windDir, windSpeed, crosswind = 0) {
+    const el = document.getElementById("runway-active");
+    if (!el) return;
+    el.innerHTML = `
+        <b>Piste active :</b> ${runway}<br>
+        Vent : ${windDir ?? "—"}° / ${windSpeed ?? "—"} kt<br>
+        Crosswind : ${crosswind.toFixed(1)} kt
+    `;
+}
+
+export const RUNWAYS = {
+    "22": {
+        id: "22",
+        heading: 220,
+        start: [50.64834, 5.46639],
+        end:   [50.64186, 5.44028]
+    },
+    "04": {
+        id: "04",
+        heading: 40,
+        start: [50.64186, 5.44028],
+        end:   [50.64834, 5.46639]
+    }
+};
+
+export function getRunwayFromWind(windDir) {
+    if (windDir == null) return "22";
+    const d22 = Math.abs(windDir - RUNWAYS["22"].heading);
+    const d04 = Math.abs(windDir - RUNWAYS["04"].heading);
+    const n22 = Math.min(d22, 360 - d22);
+    const n04 = Math.min(d04, 360 - d04);
+    return n22 < n04 ? "22" : "04";
+}
+
+export function updateRunwayPanel(runway, windDir, windSpeed, crosswind = 0) {
+    const el = document.getElementById("runway-active");
+    if (!el) return;
     el.innerHTML = `
         <b>Piste active :</b> ${runway}<br>
         Vent : ${windDir ?? "—"}° / ${windSpeed ?? "—"} kt<br>
