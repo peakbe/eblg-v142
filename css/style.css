@@ -232,6 +232,35 @@ h2 {
 .status-warn { background: rgba(255,165,0,0.25); color: #ffb; }
 .status-error { background: rgba(255,0,0,0.25); color: #f99; }
 
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 14px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.green {
+    background: #00ff9c;
+    box-shadow: 0 0 6px #00ff9c;
+}
+
+.status-dot.orange {
+    background: #ffb400;
+    box-shadow: 0 0 6px #ffb400;
+}
+
+.status-dot.red {
+    background: #ff4d4d;
+    box-shadow: 0 0 6px #ff4d4d;
+}
+
 /* ======================================================
    DEBUG PANEL
 ====================================================== */
