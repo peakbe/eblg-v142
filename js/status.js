@@ -5,16 +5,10 @@
 
 import { ENDPOINTS } from "./config.js";
 
-// ------------------------------------------------------
-// Logging PRO+
-// ------------------------------------------------------
 const IS_DEV = location.hostname.includes("localhost");
 const log = (...a) => IS_DEV && console.log("[STATUS]", ...a);
 const logErr = (...a) => console.error("[STATUS ERROR]", ...a);
 
-// ------------------------------------------------------
-// Vérification API
-// ------------------------------------------------------
 export async function checkApiStatus() {
     log("Vérification statut API…");
 
@@ -28,9 +22,6 @@ export async function checkApiStatus() {
     updateStatusPanel(results);
 }
 
-// ------------------------------------------------------
-// Ping d’un endpoint
-// ------------------------------------------------------
 async function ping(url) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
@@ -38,46 +29,38 @@ async function ping(url) {
     try {
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
-
         if (!res.ok) return "DOWN";
         return "OK";
-
     } catch (err) {
         logErr("Ping error:", url, err);
         return "DOWN";
     }
 }
 
-// ------------------------------------------------------
-// Mise à jour UI
-// ------------------------------------------------------
-export function updateStatusPanel(results) {
+function updateStatusPanel(results) {
     const el = document.getElementById("api-status");
     if (!el) return;
 
     el.innerHTML = `
-        <div class="status-row">
+        <div class="status-row" data-key="METAR">
             <span>METAR</span>
             <span class="status-dot ${color(results.METAR)}"></span>
         </div>
-        <div class="status-row">
+        <div class="status-row" data-key="TAF">
             <span>TAF</span>
             <span class="status-dot ${color(results.TAF)}"></span>
         </div>
-        <div class="status-row">
+        <div class="status-row" data-key="FIDS">
             <span>FIDS</span>
             <span class="status-dot ${color(results.FIDS)}"></span>
         </div>
-        <div class="status-row">
+        <div class="status-row" data-key="SONO">
             <span>Sonomètres</span>
             <span class="status-dot ${color(results.SONO)}"></span>
         </div>
     `;
 }
 
-// ------------------------------------------------------
-// Couleurs ATC
-// ------------------------------------------------------
 function color(state) {
     switch (state) {
         case "OK": return "green";
