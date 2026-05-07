@@ -10,9 +10,9 @@ import { safeLoadFids } from "./fids.js";
 
 import { loadSonometers, toggleHeatmap } from "./sonometers.js";
 
-import { checkApiStatus } from "./status.js";   // ✔ Harmonisé
-import { loadLogs } from "./logs.js";           // ✔ Harmonisé
-import { startLiveLogs } from "./logsLive.js";  // ✔ Harmonisé
+import { checkApiStatus } from "./status.js";
+import { loadLogs } from "./logs.js";
+import { startLiveLogs } from "./logsLive.js";
 
 // ============================
 // INITIALISATION UNIQUE
@@ -24,10 +24,10 @@ window.addEventListener("DOMContentLoaded", () => {
     initMap();
 
     // Chargements initiaux
-    safeLoadMetar();
+    safeLoadMetar();       // → calcule piste active + dessine runway/corridor
     safeLoadTaf();
     safeLoadFids();
-    loadSonometers();   // ← indispensable pour afficher les sonomètres
+    loadSonometers();      // ← indispensable pour afficher les sonomètres
     checkApiStatus();
     startLiveLogs();
 
@@ -38,4 +38,3 @@ window.addEventListener("DOMContentLoaded", () => {
     setInterval(loadSonometers, 60_000);   // ← refresh sonomètres
     setInterval(checkApiStatus, 30_000);
 });
-
