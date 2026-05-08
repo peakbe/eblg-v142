@@ -20,28 +20,39 @@ import { startLiveLogs } from "./logsLive.js";
 
 window.addEventListener("DOMContentLoaded", () => {
 
-    // *** CRITIQUE : initialisation de la carte ***
-    initMap();
+    // --- Gestion des onglets ---
+    const tabs = document.querySelectorAll("#sidebar-tabs button");
+    const panels = document.querySelectorAll("#sidebar-panels .panel");
 
-    // Chargements initiaux
-    safeLoadMetar();       // → calcule piste active + dessine runway/corridor
+    tabs.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const tab = btn.dataset.tab;
+
+            tabs.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            panels.forEach(p => p.classList.add("hidden"));
+            document.getElementById(`panel-${tab}`).classList.remove("hidden");
+        });
+    });
+
+    // Onglet par défaut
+    document.querySelector('#sidebar-tabs button[data-tab="metar"]').click();
+
+    // --- Ton code existant ---
+    initMap();
+    safeLoadMetar();
     safeLoadTaf();
     safeLoadFids();
-    loadSonometers();      // ← indispensable pour afficher les sonomètres
+    loadSonometers();
     checkApiStatus();
     startLiveLogs();
 
-    // Rafraîchissements périodiques
     setInterval(safeLoadMetar, 60_000);
     setInterval(safeLoadTaf, 5 * 60_000);
     setInterval(safeLoadFids, 60_000);
-    setInterval(loadSonometers, 60_000);   // ← refresh sonomètres
+    setInterval(loadSonometers, 60_000);
     setInterval(checkApiStatus, 30_000);
-    
 });
 
-document.getElementById("btn-sonos").addEventListener("click", () => {
-    const panel = document.getElementById("sono-panel");
-    panel.classList.toggle("hidden");
-});
 
