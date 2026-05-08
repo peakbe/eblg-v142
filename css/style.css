@@ -182,7 +182,7 @@ h2 {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    z-index: 9999;
+    z-index: 10000 !important;
 }
 
 .float-btn {
