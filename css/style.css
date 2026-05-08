@@ -27,7 +27,7 @@ h2 {
    SIDEBAR (FIXE)
 ====================================================== */
 
-.sidebar {
+#sidebar {
     position: absolute;
     top: 0;
     left: 0;
@@ -335,7 +335,7 @@ h2 {
 }
 
 @media (max-width: 768px) {
-    .sidebar { width: 240px; }
+    #sidebar { width: 240px; }
     .detail-panel { width: 240px; }
     .floating-buttons { top: 12px; right: 12px; }
     .float-btn { padding: 6px 10px; font-size: 12px; }
