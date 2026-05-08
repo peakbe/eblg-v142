@@ -1,102 +1,103 @@
 // ======================================================
-// FIDS PRO++ — Tri, ETA/ETD, couleurs ATC, animation boarding
+// FIDS PRO+++
+// 10 prochains vols confirmés
+// Séparation Arrivées / Départs
+// Icônes ATC minimalistes
+// Tri ETA/ETD
 // ======================================================
 
 import { ENDPOINTS } from "./config.js";
 import { fetchJSON, updateStatusPanel } from "./helpers.js";
 
-const IS_DEV = location.hostname.includes("localhost");
-const log = (...a) => IS_DEV && console.log("[FIDS]", ...a);
-const logErr = (...a) => console.error("[FIDS ERROR]", ...a);
-
-// ------------------------------------------------------
-// Chargement sécurisé
-// ------------------------------------------------------
 export async function safeLoadFids() {
     try {
         await loadFids();
-        log("FIDS chargé");
     } catch (err) {
-        logErr("Erreur FIDS :", err);
+        console.error("[FIDS ERROR]", err);
     }
 }
 
-// ------------------------------------------------------
-// Chargement brut
-// ------------------------------------------------------
 export async function loadFids() {
     const data = await fetchJSON(ENDPOINTS.fids);
     updateFidsUI(data);
     updateStatusPanel("FIDS", data);
 }
 
-// ------------------------------------------------------
-// Helpers
-// ------------------------------------------------------
 function parseTime(t) {
     if (!t) return 9999;
     const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
 }
 
-// ------------------------------------------------------
-// UI PRO++
-// ------------------------------------------------------
 export function updateFidsUI(data) {
-    const el = document.getElementById("fids");
-    if (!el) return;
+    const arrEl = document.getElementById("fids-arrivals");
+    const depEl = document.getElementById("fids-departures");
+    if (!arrEl || !depEl) return;
 
-    el.innerHTML = "";
+    arrEl.innerHTML = `<div class="fids-section-title">Arrivées</div>`;
+    depEl.innerHTML = `<div class="fids-section-title">Départs</div>`;
 
     if (!Array.isArray(data) || !data.length) {
-        el.innerHTML = `<div class="fids-row">Aucun départ disponible</div>`;
+        depEl.innerHTML += `<div class="fids-row">Aucun vol disponible</div>`;
         return;
     }
 
-    // Tri automatique par heure (ETD si dispo, sinon time)
-    data.sort((a, b) => {
-        const ta = parseTime(a.etd || a.time);
-        const tb = parseTime(b.etd || b.time);
-        return ta - tb;
-    });
+    // Séparation Arrivées / Départs
+    const arrivals = data.filter(f => f.type === "arrival");
+    const departures = data.filter(f => f.type === "departure");
 
-    const isFallback = data.some(f => f.fallback);
+    // Tri par ETA/ETD
+    arrivals.sort((a, b) => parseTime(a.eta || a.time) - parseTime(b.eta || b.time));
+    departures.sort((a, b) => parseTime(a.etd || a.time) - parseTime(b.etd || b.time));
 
-    data.forEach(f => {
-        const status = (f.status || "").toLowerCase();
+    // Limiter à 10 vols confirmés
+    const nextArrivals = arrivals.slice(0, 10);
+    const nextDepartures = departures.slice(0, 10);
 
-        let cssClass = "fids-unknown";
-        if (status.includes("on time")) cssClass = "fids-on-time";
-        if (status.includes("delayed")) cssClass = "fids-delayed";
-        if (status.includes("cancel")) cssClass = "fids-cancelled";
-        if (status.includes("board")) cssClass = "fids-boarding";
+    // Icônes ATC minimalistes
+    const icons = {
+        arrival: "🛬",
+        departure: "🛫",
+        boarding: "🟦",
+        delayed: "🟧",
+        cancelled: "🟥",
+        "on time": "🟩"
+    };
 
-        const row = document.createElement("div");
-        row.className = `fids-row ${cssClass}`;
+    function render(list, container) {
+        list.forEach(f => {
+            const status = (f.status || "").toLowerCase();
 
-        // Animation boarding
-        if (cssClass === "fids-boarding") {
-            row.style.animation = "boardingBlink 1.2s infinite alternate";
-        }
+            let cssClass = "fids-unknown";
+            if (status.includes("on time")) cssClass = "fids-on-time";
+            if (status.includes("delayed")) cssClass = "fids-delayed";
+            if (status.includes("cancel")) cssClass = "fids-cancelled";
+            if (status.includes("board")) cssClass = "fids-boarding";
 
-        row.innerHTML = `
-            <span class="fids-flight">${f.flight || "—"}</span>
-            <span class="fids-dest">${f.destination || "—"}</span>
-            <span class="fids-time">
-                ${f.time || "—"}
-                ${f.etd ? `<span class="fids-etd">ETD ${f.etd}</span>` : ""}
-                ${f.eta ? `<span class="fids-eta">ETA ${f.eta}</span>` : ""}
-            </span>
-            <span class="fids-status">${f.status || "—"}</span>
-        `;
+            const icon = icons[f.type] || "✈️";
 
-        el.appendChild(row);
-    });
+            const row = document.createElement("div");
+            row.className = `fids-row ${cssClass}`;
 
-    if (isFallback) {
-        const fb = document.createElement("div");
-        fb.className = "fids-fallback";
-        fb.textContent = "Données FIDS simulées (fallback).";
-        el.appendChild(fb);
+            if (cssClass === "fids-boarding") {
+                row.style.animation = "boardingBlink 1.2s infinite alternate";
+            }
+
+            row.innerHTML = `
+                <span class="fids-icon">${icon}</span>
+                <span class="fids-flight">${f.flight || "—"}</span>
+                <span class="fids-dest">${f.destination || "—"}</span>
+                <span class="fids-time">
+                    ${f.time || "—"}
+                    ${f.etd ? `<span class="fids-etd">ETD ${f.etd}</span>` : ""}
+                    ${f.eta ? `<span class="fids-eta">ETA ${f.eta}</span>` : ""}
+                </span>
+            `;
+
+            container.appendChild(row);
+        });
     }
+
+    render(nextArrivals, arrEl);
+    render(nextDepartures, depEl);
 }
