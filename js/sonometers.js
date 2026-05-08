@@ -1,7 +1,9 @@
 // ======================================================
-// SONOMETERS — VERSION PRO+ FINALE
-// Chargement robuste, icônes ATC, heatmap, clusters,
-// panneau latéral, fallback intelligent.
+// SONOMETERS PRO++ — Cockpit IFR
+// - Chargement sécurisé
+// - Clustering + Heatmap
+// - Intégration carte (window.map)
+// - Panneau latéral compact
 // ======================================================
 
 import { ENDPOINTS } from "./config.js";
@@ -11,152 +13,164 @@ const IS_DEV = location.hostname.includes("localhost");
 const log = (...a) => IS_DEV && console.log("[SONO]", ...a);
 const logErr = (...a) => console.error("[SONO ERROR]", ...a);
 
-// Layers
-let markersLayer = null;
-let heatLayer = null;
+let sonoMarkers = null;
+let sonoHeat = null;
+let sonoDataCache = [];
 
-// Icône ATC (compatible GitHub Pages)
-const sonoIcon = L.icon({
-    iconUrl: "assets/icons/sono-atc.png",   // ✔ Chemin relatif
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
-});
-
-// Mapping sonomètres → couleur selon piste active
-const SONO_BY_RUNWAY = {
-    "22": {
-        green: ["F002","F003","F004","F005","F006","F007","F008","F009","F010","F011","F012","F013","F016","F001","F014","F015","F017"]
-    },
-    "04": {
-        green: ["F002","F003","F007","F008","F009","F011","F013","F014","F015"],
-        red:   ["F004","F005","F006","F010","F012","F016","F001","F017"]
-    }
-};
-
-// ======================================================
+// ------------------------------------------------------
 // Chargement principal
-// ======================================================
+// ------------------------------------------------------
 export async function loadSonometers() {
-    log("Chargement des sonomètres…");
-
-    const data = await fetchJSON(ENDPOINTS.sonometers);
-
-    if (!data || !Array.isArray(data)) {
-        logErr("Données sonomètres invalides :", data);
-        updateSonometersPanel([]);
-        return;
+    try {
+        const data = await fetchJSON(ENDPOINTS.sonometers);
+        sonoDataCache = Array.isArray(data) ? data : [];
+        renderSonometers(sonoDataCache);
+        renderSonoList(sonoDataCache);
+        log("Sonomètres chargés :", sonoDataCache.length);
+    } catch (err) {
+        logErr("Erreur chargement sonomètres :", err);
     }
-
-    renderSonometers(data);
-    updateSonometersPanel(data);
 }
 
-// ======================================================
-// Rendu sur la carte
-// ======================================================
-function renderSonometers(list) {
+// ------------------------------------------------------
+// Rendu carte
+// ------------------------------------------------------
+function renderSonometers(data) {
     if (!window.map) {
-        console.error("[SONO ERROR] Carte non initialisée");
+        logErr("Carte non initialisée");
         return;
     }
 
-    const map = window.map;
+    // Nettoyage
+    if (sonoMarkers) {
+        window.map.removeLayer(sonoMarkers);
+        sonoMarkers = null;
+    }
+    if (sonoHeat) {
+        window.map.removeLayer(sonoHeat);
+        sonoHeat = null;
+    }
 
-    // Reset layers
-    if (markersLayer) map.removeLayer(markersLayer);
-    if (heatLayer) map.removeLayer(heatLayer);
+    if (!Array.isArray(data) || !data.length) return;
 
-    markersLayer = L.markerClusterGroup({
-        showCoverageOnHover: false,
-        maxClusterRadius: 40
+    // Cluster markers
+    sonoMarkers = window.L.markerClusterGroup({
+        disableClusteringAtZoom: 15,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false
     });
 
     const heatPoints = [];
 
-    // --- Ajout logique piste active ---
-    const active = window._activeRunway || "22";
-    const greenList = SONO_BY_RUNWAY[active]?.green || [];
-    const redList   = SONO_BY_RUNWAY[active]?.red   || [];
+    data.forEach(s => {
+        if (!s.lat || !s.lng) return;
 
-    // --- Boucle principale ---
-    list.forEach(sono => {
-        const { lat, lon, status, id, address } = sono;
-        if (!lat || !lon) return;
+        const latlng = [s.lat, s.lng];
 
-        // Couleur selon piste active
-        let color = "#888"; // défaut neutre
-
-        if (greenList.includes(id)) color = "#00ff9c";   // vert ATC
-        if (redList.includes(id))   color = "#ff4444";   // rouge ATC
-
-        const marker = L.circleMarker([lat, lon], {
+        const marker = window.L.circleMarker(latlng, {
             radius: 6,
-            color,
-            fillColor: color,
-            fillOpacity: 0.9,
-            weight: 1
+            color: "#00e5ff",
+            weight: 1,
+            fillColor: "#00e5ff",
+            fillOpacity: 0.7
         });
 
+        const level = s.level || "—";
+        const name = s.name || s.id || "Sonomètre";
+
         marker.bindPopup(`
-            <b>Sonomètre ${id}</b><br>
-            ${address || "Adresse inconnue"}<br>
-            Statut : ${status || "—"}<br>
-            Piste active : ${active}
+            <b>${name}</b><br>
+            Niveau : ${level} dB<br>
+            Commune : ${s.town || "—"}<br>
+            Statut : ${s.status || "—"}
         `);
 
-        markersLayer.addLayer(marker);
+        marker.on("click", () => {
+            updateDetailPanel(s);
+        });
 
-        // Heatmap cohérente
-        const intensity = color === "#00ff9c" ? 0.3 : 0.8;
-        heatPoints.push([lat, lon, intensity]);
+        sonoMarkers.addLayer(marker);
+
+        // Heatmap
+        const intensity = s.level ? Math.min(Math.max((s.level - 40) / 40, 0.1), 1) : 0.3;
+        heatPoints.push([...latlng, intensity]);
     });
 
-    map.addLayer(markersLayer);
-
-    heatLayer = L.heatLayer(heatPoints, {
-        radius: 35,
-        blur: 20,
-        maxZoom: 12
+    sonoHeat = window.L.heatLayer(heatPoints, {
+        radius: 25,
+        blur: 18,
+        maxZoom: 17,
+        gradient: {
+            0.2: "#00e676",
+            0.5: "#ffeb3b",
+            0.8: "#ff9800",
+            1.0: "#f44336"
+        }
     });
+
+    sonoMarkers.addTo(window.map);
+    sonoHeat.addTo(window.map);
 }
 
-// ======================================================
-// Toggle Heatmap
-// ======================================================
-export function toggleHeatmap(map) {
-    if (!heatLayer) return;
-
-    if (map.hasLayer(heatLayer)) {
-        map.removeLayer(heatLayer);
+// ------------------------------------------------------
+// Toggle Heatmap (si tu veux l’utiliser ailleurs)
+// ------------------------------------------------------
+export function toggleHeatmap(enabled) {
+    if (!window.map || !sonoHeat) return;
+    if (enabled) {
+        if (!window.map.hasLayer(sonoHeat)) sonoHeat.addTo(window.map);
     } else {
-        map.addLayer(heatLayer);
+        if (window.map.hasLayer(sonoHeat)) window.map.removeLayer(sonoHeat);
     }
 }
 
-// ======================================================
-// Panneau latéral — Liste des sonomètres
-// ======================================================
-function updateSonometersPanel(list) {
-    const panel = document.getElementById("sono-list");
-    if (!panel) return;
+// ------------------------------------------------------
+// Panneau latéral — liste des sonomètres
+// ------------------------------------------------------
+function renderSonoList(data) {
+    const el = document.getElementById("sono-list");
+    if (!el) return;
 
-    panel.innerHTML = "";
+    el.innerHTML = "";
 
-    if (!list.length) {
-        panel.innerHTML = `<div class="sono-row">Aucun sonomètre disponible</div>`;
+    if (!Array.isArray(data) || !data.length) {
+        el.innerHTML = `<div class="sono-row">Aucun sonomètre disponible</div>`;
         return;
     }
 
-    list.forEach(sono => {
+    data.forEach(s => {
         const row = document.createElement("div");
         row.className = "sono-row";
 
         row.innerHTML = `
-            <b>${sono.id}</b> — ${sono.address || "Adresse inconnue"}<br>
-            <small>${sono.lat}, ${sono.lon}</small>
+            <span class="sono-name">${s.name || s.id || "Sonomètre"}</span>
+            <span class="sono-town">${s.town || "—"}</span>
+            <span class="sono-level">${s.level ? s.level + " dB" : "—"}</span>
         `;
 
-        panel.appendChild(row);
+        row.addEventListener("click", () => {
+            if (window.map && s.lat && s.lng) {
+                window.map.setView([s.lat, s.lng], 15);
+            }
+            updateDetailPanel(s);
+        });
+
+        el.appendChild(row);
     });
+}
+
+// ------------------------------------------------------
+// Détail panel
+// ------------------------------------------------------
+function updateDetailPanel(s) {
+    const panel = document.getElementById("detail-panel");
+    if (!panel) return;
+
+    document.getElementById("detail-title").textContent = s.name || s.id || "Sonomètre";
+    document.getElementById("detail-address").textContent = s.address || "—";
+    document.getElementById("detail-town").textContent = s.town || "—";
+    document.getElementById("detail-status").textContent = s.status || "—";
+    document.getElementById("detail-distance").textContent = s.distance || "—";
+
+    panel.classList.remove("hidden");
 }
