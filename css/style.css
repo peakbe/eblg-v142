@@ -210,12 +210,7 @@ h2 {
    FIDS
 ====================================================== */
 
-.fids-container {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
+/* FIDS PRO++ */
 .fids-row {
     padding: 6px 8px;
     border-radius: 4px;
@@ -225,12 +220,28 @@ h2 {
     grid-template-columns: 1fr 1fr 1fr 1fr;
     font-size: 13px;
     color: #d8e0e6;
+    margin-bottom: 4px;
 }
 
+/* Couleurs ATC */
 .fids-on-time { border-color: #00e676; }
 .fids-delayed { border-color: #ffb74d; }
 .fids-cancelled { border-color: #ef5350; }
 .fids-boarding { border-color: #42a5f5; }
+
+/* ETA / ETD */
+.fids-etd, .fids-eta {
+    display: block;
+    font-size: 11px;
+    color: #00e5ff;
+    opacity: 0.8;
+}
+
+/* Animation boarding */
+@keyframes boardingBlink {
+    from { box-shadow: 0 0 4px #42a5f5; }
+    to   { box-shadow: 0 0 12px #42a5f5; }
+}
 
 /* ======================================================
    STATUS PANEL
