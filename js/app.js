@@ -2,7 +2,7 @@
 // APP.JS PRO+ (VERSION HARMONISÉE)
 // =========================
 
-import { initMap } from "./map.js";
+import { initMap, resetMapView } from "./map.js";
 
 import { safeLoadMetar } from "./metar.js";
 import { safeLoadTaf } from "./taf.js";
@@ -35,17 +35,16 @@ window.addEventListener("DOMContentLoaded", () => {
             document.getElementById(`panel-${tab}`).classList.remove("hidden");
         });
     });
-    
-import { resetMapView } from "./map.js";
 
-document.getElementById("btn-reset-zoom").addEventListener("click", () => {
-    resetMapView();
-});
+    // --- Bouton Reset Zoom ---
+    document.getElementById("btn-reset-zoom").addEventListener("click", () => {
+        resetMapView();
+    });
 
     // Onglet par défaut
     document.querySelector('#sidebar-tabs button[data-tab="metar"]').click();
 
-    // --- Ton code existant ---
+    // --- Initialisation des modules ---
     initMap();
     safeLoadMetar();
     safeLoadTaf();
@@ -54,11 +53,10 @@ document.getElementById("btn-reset-zoom").addEventListener("click", () => {
     checkApiStatus();
     startLiveLogs();
 
+    // Rafraîchissements périodiques
     setInterval(safeLoadMetar, 60_000);
     setInterval(safeLoadTaf, 5 * 60_000);
     setInterval(safeLoadFids, 60_000);
     setInterval(loadSonometers, 60_000);
     setInterval(checkApiStatus, 30_000);
 });
-
-
