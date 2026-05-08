@@ -55,34 +55,20 @@ export async function loadSonometers() {
 // ======================================================
 // Rendu sur la carte
 // ======================================================
-function renderSonometers(list) {
-    if (!window._map) {
-        logErr("Carte non initialisée");
-        return;
-    }
+const active = window._activeRunway || "22";
+const greenList = SONO_BY_RUNWAY[active]?.green || [];
+const redList   = SONO_BY_RUNWAY[active]?.red   || [];
 
-    const map = window._map;
-
-    // Reset layers
-    if (markersLayer) map.removeLayer(markersLayer);
-    if (heatLayer) map.removeLayer(heatLayer);
-
-    markersLayer = L.markerClusterGroup({
-        showCoverageOnHover: false,
-        maxClusterRadius: 40
-    });
-
-    const heatPoints = [];
-
-    list.forEach(sono => {
+list.forEach(sono => {
     const { lat, lon, status, id, address } = sono;
-
     if (!lat || !lon) return;
 
-    // Couleur selon statut
-    const color = status === "OK" ? "#00ff9c" : "#ff4444";
+    // Couleur selon piste active
+    let color = "#888"; // défaut
 
-    // Point couleur (circleMarker)
+    if (greenList.includes(id)) color = "#00ff9c";   // vert ATC
+    if (redList.includes(id))   color = "#ff4444";   // rouge ATC
+
     const marker = L.circleMarker([lat, lon], {
         radius: 6,
         color,
@@ -94,25 +80,17 @@ function renderSonometers(list) {
     marker.bindPopup(`
         <b>Sonomètre ${id}</b><br>
         ${address || "Adresse inconnue"}<br>
-        Statut : ${status || "—"}
+        Statut : ${status || "—"}<br>
+        Piste active : ${active}
     `);
 
     markersLayer.addLayer(marker);
 
-    // Heatmap
-    const intensity = status === "OK" ? 0.3 : 0.8;
+    // Heatmap cohérente
+    const intensity = color === "#00ff9c" ? 0.3 : 0.8;
     heatPoints.push([lat, lon, intensity]);
 });
 
-    map.addLayer(markersLayer);
-
-    // Heatmap
-    heatLayer = L.heatLayer(heatPoints, {
-        radius: 35,
-        blur: 20,
-        maxZoom: 12
-    });
-}
 
 // ======================================================
 // Toggle Heatmap
