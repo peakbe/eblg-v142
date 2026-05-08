@@ -19,6 +19,11 @@ export function initMap() {
         zoom: 12,
         zoomControl: true
     });
+    
+export function resetMapView() {
+    if (!window.map) return;
+    map.setView([50.637, 5.443], 13); // centre EBLG + zoom par défaut
+}
 
     // *** CRITIQUE ***
     window._map = map;
