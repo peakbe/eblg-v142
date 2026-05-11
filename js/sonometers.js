@@ -247,4 +247,144 @@ function renderSonometers(data) {
         if (!lat || !lng) return;
 
         const level = getLevel(s);
-        const
+                const town = getTown(s);
+        const status = getStatus(s);
+
+        const marker = window.L.marker([lat, lng], {
+            icon: sonoIcon(level)
+        });
+
+        marker.bindPopup(`
+            <b>Sonomètre ${s.id}</b><br>
+            Adresse : ${s.address || "—"}<br>
+            Niveau : ${level != null ? level + " dB" : "—"}<br>
+            Commune : ${town}<br>
+            Statut : ${status}<br>
+            Distance piste : ${
+                s._distanceKm != null ? s._distanceKm.toFixed(1) + " km" : "—"
+            }
+        `);
+
+        marker.on("mouseover", () => highlightRow(s.id, true));
+        marker.on("mouseout", () => highlightRow(s.id, false));
+        marker.on("click", () => updateDetailPanel(s));
+
+        markerById.set(s.id, marker);
+        sonoMarkers.addLayer(marker);
+
+        heatPoints.push([lat, lng, levelIntensity(level)]);
+    });
+
+    sonoHeat = window.L.heatLayer(heatPoints, {
+        radius: 25,
+        blur: 18,
+        maxZoom: 17,
+        gradient: {
+            0.2: "#00e676",
+            0.5: "#ffeb3b",
+            0.8: "#ff9800",
+            1.0: "#f44336"
+        }
+    });
+
+    sonoMarkers.addTo(window.map);
+    sonoHeat.addTo(window.map);
+}
+
+// ------------------------------------------------------
+// Toggle Heatmap
+// ------------------------------------------------------
+export function toggleHeatmap(enabled) {
+    if (!window.map || !sonoHeat) return;
+    if (enabled) {
+        if (!window.map.hasLayer(sonoHeat)) sonoHeat.addTo(window.map);
+    } else {
+        if (window.map.hasLayer(sonoHeat)) window.map.removeLayer(sonoHeat);
+    }
+}
+
+// ------------------------------------------------------
+// Liste latérale
+// ------------------------------------------------------
+function renderSonoList(data) {
+    const el = document.getElementById("sono-list");
+    if (!el) return;
+
+    el.innerHTML = "";
+    rowById.clear();
+
+    if (!data.length) {
+        el.innerHTML = `<div class="sono-row">Aucun sonomètre disponible</div>`;
+        return;
+    }
+
+    data.forEach(s => {
+        const lat = getLat(s);
+        const lng = getLng(s);
+        if (!lat || !lng) return;
+
+        const level = getLevel(s);
+        const town = getTown(s);
+
+        const row = document.createElement("div");
+        row.className = "sono-row";
+
+        row.innerHTML = `
+            <span class="sono-name">${s.id}</span>
+            <span class="sono-town">${s.address || town}</span>
+            <span class="sono-level">${level != null ? level + " dB" : "—"}</span>
+        `;
+
+        row.addEventListener("mouseenter", () => {
+            highlightRow(s.id, true);
+            const marker = markerById.get(s.id);
+            if (marker) marker.openPopup();
+        });
+
+        row.addEventListener("mouseleave", () => {
+            highlightRow(s.id, false);
+        });
+
+        row.addEventListener("click", () => {
+            if (window.map && lat && lng) {
+                window.map.setView([lat, lng], 15);
+            }
+            updateDetailPanel(s);
+        });
+
+        rowById.set(s.id, row);
+        el.appendChild(row);
+    });
+}
+
+// ------------------------------------------------------
+// Highlight carte <-> liste
+// ------------------------------------------------------
+function highlightRow(id, on) {
+    const row = rowById.get(id);
+    if (!row) return;
+    if (on) row.classList.add("highlight");
+    else row.classList.remove("highlight");
+}
+
+// ------------------------------------------------------
+// Détail panel
+// ------------------------------------------------------
+function updateDetailPanel(s) {
+    const panel = document.getElementById("detail-panel");
+    if (!panel) return;
+
+    const level = getLevel(s);
+    const town = getTown(s);
+    const status = getStatus(s);
+
+    document.getElementById("detail-title").textContent = `Sonomètre ${s.id}`;
+    document.getElementById("detail-address").textContent = s.address || "—";
+    document.getElementById("detail-town").textContent = town;
+    document.getElementById("detail-status").textContent = status;
+    document.getElementById("detail-distance").textContent =
+        s._distanceKm != null ? s._distanceKm.toFixed(1) + " km" : "—";
+
+    panel.classList.remove("hidden");
+}
+
