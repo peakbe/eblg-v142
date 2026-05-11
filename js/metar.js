@@ -53,25 +53,37 @@ export function updateMetarUI(data) {
 
     el.innerText = data.raw;
 
-    const windDir = data.wind_direction?.value ?? null;
-    const windSpeed = data.wind_speed?.value ?? null;
+  // 1) Extraction vent
+const windDir = data.wind_direction?.value ?? null;
+const windSpeed = data.wind_speed?.value ?? null;
 
-    const active = getRunwayFromWind(windDir);
-    window._activeRunway = active?.id ?? null;
+// 2) Détermination piste active
+const active = getRunwayFromWind(windDir);
+window._activeRunway = active?.id ?? null;
 
-    const { crosswind, headwind } = computeCrosswind(
-        windDir,
-        windSpeed,
-        active?.heading ?? null
-    );
+// 3) Mise à jour carte
+drawRunwayDirection(active?.id ?? null);
+drawNoiseCorridor(active?.id ?? null);
 
-    updateRunwayPanel(
-        active?.id ?? "—",
-        windDir,
-        windSpeed,
-        crosswind,
-        headwind
-    );
+// 4) Couplage sonomètres
+applyRunwayColoring(active?.id ?? null);
+
+// 5) Calcul vent de travers / face
+const { crosswind, headwind } = computeCrosswind(
+    windDir,
+    windSpeed,
+    active?.heading ?? null
+);
+
+// 6) Mise à jour panneau piste
+updateRunwayPanel(
+    active?.id ?? "—",
+    windDir,
+    windSpeed,
+    crosswind,
+    headwind
+);
+
 
     drawRunwayDirection(active?.id ?? null);
 }
