@@ -1,13 +1,7 @@
 // ======================================================
 // RUNWAYS PRO+++ — Cockpit IFR EBLG
 // ======================================================
-// - Détection piste active (04/22)
-// - Calcul crosswind / headwind
-// - Mise à jour panneau piste
-// - Coordonnées réelles EBLG
-// ======================================================
 
-// Coordonnées réelles EBLG
 export const RUNWAYS = {
     "04": {
         id: "04",
@@ -23,9 +17,7 @@ export const RUNWAYS = {
     }
 };
 
-// ------------------------------------------------------
-// Détermination piste active selon direction du vent
-// ------------------------------------------------------
+// Piste active en fonction du vent
 export function getRunwayFromWind(windDir) {
     if (windDir == null) return RUNWAYS["22"]; // défaut
 
@@ -38,16 +30,13 @@ export function getRunwayFromWind(windDir) {
     return n22 < n04 ? RUNWAYS["22"] : RUNWAYS["04"];
 }
 
-// ------------------------------------------------------
-// Calcul vent de travers / vent de face
-// ------------------------------------------------------
+// Vent de travers / de face
 export function computeCrosswind(windDir, windSpeed, runwayHeading) {
     if (windDir == null || windSpeed == null || runwayHeading == null) {
         return { crosswind: 0, headwind: 0 };
     }
 
     const angle = (windDir - runwayHeading) * Math.PI / 180;
-
     const crosswind = Math.sin(angle) * windSpeed;
     const headwind  = Math.cos(angle) * windSpeed;
 
@@ -57,9 +46,7 @@ export function computeCrosswind(windDir, windSpeed, runwayHeading) {
     };
 }
 
-// ------------------------------------------------------
-// Mise à jour panneau piste
-// ------------------------------------------------------
+// Panneau piste
 export function updateRunwayPanel(runway, windDir, windSpeed, crosswind = 0, headwind = 0) {
     const el = document.getElementById("runway-active");
     if (!el) return;
