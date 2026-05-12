@@ -216,3 +216,103 @@ export function drawTracks(runwayId) {
         dashArray: "6,4"
     }).addTo(window.map);
 }
+// ======================================================
+// RADAR ADS‑B PRO+++
+// ======================================================
+
+let adsbLayer = null;
+
+export async function updateADSB() {
+    if (!window.map) return;
+
+    // Supprimer ancienne couche
+    if (adsbLayer) {
+        window.map.removeLayer(adsbLayer);
+        adsbLayer = null;
+    }
+
+    // Exemple : backend perso / OpenSky / ADSBexchange
+    const url = "https://opensky-network.org/api/states/all";
+
+    let data;
+    try {
+        const res = await fetch(url);
+        data = await res.json();
+    } catch (e) {
+        console.error("[ADSB] Erreur chargement", e);
+        return;
+    }
+
+    if (!data?.states) return;
+
+    adsbLayer = window.L.layerGroup().addTo(window.map);
+
+    data.states.forEach(s => {
+        const callsign = s[1]?.trim() || "";
+        const lat = s[6];
+        const lon = s[5];
+        const alt = Math.round(s[13] || 0);
+        const speed = Math.round((s[9] || 0) * 1.94384); // m/s → kt
+        const vr = s[11] || 0;
+
+        if (!lat || !lon) return;
+
+        // Détection phase
+        let color = "#00e5ff"; // transit
+        if (vr < -300) color = "#ff9100"; // arrivée
+        if (vr > 300) color = "#00e676"; // départ
+
+        const marker = window.L.circleMarker([lat, lon], {
+            radius: 6,
+            color,
+            fillColor: color,
+            fillOpacity: 0.9
+        }).addTo(adsbLayer);
+
+        marker.bindTooltip(`
+            <b>${callsign}</b><br>
+            Alt : ${alt} ft<br>
+            Vitesse : ${speed} kt<br>
+            V/S : ${vr} ft/min
+        `);
+    });
+}
+
+// Rafraîchissement automatique
+setInterval(updateADSB, 8000);
+
+
+// ======================================================
+// HEATMAP BRUIT DYNAMIQUE PRO+++
+// ======================================================
+
+let noiseHeatmap = null;
+
+export function updateNoiseHeatmap(sonos) {
+    if (!window.map) return;
+    if (!Array.isArray(sonos)) return;
+
+    if (noiseHeatmap) {
+        window.map.removeLayer(noiseHeatmap);
+        noiseHeatmap = null;
+    }
+
+    // Format Leaflet.heat : [lat, lon, intensity]
+    const points = sonos.map(s => {
+        const lvl = s.level || 40; // fallback
+        const intensity = Math.min(1, Math.max(0, (lvl - 40) / 30));
+        return [s.lat, s.lon, intensity];
+    });
+
+    noiseHeatmap = window.L.heatLayer(points, {
+        radius: 35,
+        blur: 25,
+        maxZoom: 14,
+        gradient: {
+            0.0: "#00e676",
+            0.4: "#ffee58",
+            0.7: "#ff9100",
+            1.0: "#ff1744"
+        }
+    }).addTo(window.map);
+}
