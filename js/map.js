@@ -1,5 +1,8 @@
 // ======================================================
 // MAP PRO+++ — Cockpit IFR EBLG
+// - Init Leaflet
+// - Affichage piste 04/22 + flèche
+// - Corridor bruit aligné sur la piste réelle
 // ======================================================
 
 import { RUNWAYS } from "./runways.js";
@@ -20,7 +23,7 @@ export function initMap() {
     }
 
     const map = window.L.map("map", {
-        center: [50.645, 5.46],   // Centre EBLG
+        center: [50.64, 5.45],
         zoom: 12,
         zoomControl: true
     });
@@ -36,7 +39,7 @@ export function initMap() {
 }
 
 // ======================================================
-// RUNWAY DIRECTION — Cockpit IFR EBLG
+// RUNWAY DIRECTION — ligne + flèche
 // ======================================================
 
 let runwayLine = null;
@@ -95,7 +98,7 @@ export function drawRunwayDirection(runwayId) {
 }
 
 // ======================================================
-// CORRIDOR BRUIT PRO+++ — Cockpit IFR
+// CORRIDOR BRUIT PRO+++ — aligné sur 22↔04
 // ======================================================
 
 let noiseCorridor = null;
@@ -110,12 +113,11 @@ export function drawNoiseCorridor(runwayId) {
 
     if (!runwayId || !RUNWAYS[runwayId]) return;
 
-    const rw = RUNWAYS[runwayId];
+    // Géométrie commune : 22 → 04 (corridor centré sur la piste)
+    const A = RUNWAYS["22"].start; // seuil 22
+    const B = RUNWAYS["04"].start; // seuil 04
 
-    const A = rw.start;
-    const B = rw.end;
-
-    const width = 800; // 800 m de chaque côté
+    const width = 800; // m de chaque côté
 
     function offsetPoint(lat, lng, dx, dy) {
         const R = 6378137;
@@ -124,12 +126,16 @@ export function drawNoiseCorridor(runwayId) {
         return [newLat, newLng];
     }
 
-    const dx = B[1] - A[1];
-    const dy = B[0] - A[0];
+    const dx = B[1] - A[1]; // lon
+    const dy = B[0] - A[0]; // lat
 
-    const len = Math.sqrt(dx*dx + dy*dy);
-    const nx = -dy / len;
-    const ny = dx / len;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+
+    // normale gauche/droite
+    const nx = -uy;
+    const ny = ux;
 
     const A_left  = offsetPoint(A[0], A[1],  nx * width, ny * width);
     const A_right = offsetPoint(A[0], A[1], -nx * width, -ny * width);
@@ -149,4 +155,3 @@ export function drawNoiseCorridor(runwayId) {
         }
     ).addTo(window.map);
 }
-
