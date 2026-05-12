@@ -1,15 +1,15 @@
 // ======================================================
 // METAR PRO+++ — Cockpit IFR EBLG
+// - Mapping CheckWX → format interne
+// - Détection piste active
+// - Mise à jour carte (runway + corridor)
+// - Mise à jour panneau piste
+// - Couplage sonomètres
 // ======================================================
 
 import { ENDPOINTS } from "./config.js";
 import { fetchJSON, updateStatusPanel } from "./helpers.js";
-import {
-    getRunwayFromWind,
-    computeCrosswind,
-    updateRunwayPanel
-} from "./runways.js";
-
+import { getRunwayFromWind, computeCrosswind } from "./runways.js";
 import { drawRunwayDirection, drawNoiseCorridor } from "./map.js";
 import { applyRunwayColoring } from "./sonometers.js";
 
@@ -30,11 +30,12 @@ export async function safeLoadMetar() {
 }
 
 // ------------------------------------------------------
-// Chargement brut
+// Chargement brut + mapping CheckWX → interne
 // ------------------------------------------------------
 export async function loadMetar() {
     const api = await fetchJSON(ENDPOINTS.metar);
 
+    // Format CheckWX → format interne
     const src = api?.data?.[0] ?? null;
 
     const mapped = src ? {
@@ -124,4 +125,19 @@ function updateRunwayIndicator(rwy) {
     if (rwy === "04") el.classList.add("rwy-04");
     else if (rwy === "22") el.classList.add("rwy-22");
     else el.classList.add("rwy-null");
+}
+
+// ------------------------------------------------------
+// Panneau piste (UI cockpit IFR)
+// ------------------------------------------------------
+function updateRunwayPanel(rwy, windDir, windSpeed, crosswind, headwind) {
+    const el = document.getElementById("runway-panel");
+    if (!el) return;
+
+    el.innerHTML = `
+        <div class="rwy-title">Piste active : <b>${rwy}</b></div>
+        <div>Vent : ${windDir ?? "—"}° / ${windSpeed ?? "—"} kt</div>
+        <div>Vent de face : ${headwind} kt</div>
+        <div>Vent de travers : ${crosswind} kt</div>
+    `;
 }
