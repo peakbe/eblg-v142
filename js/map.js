@@ -221,17 +221,18 @@ export function drawTracks(runwayId) {
 // ======================================================
 
 let adsbLayer = null;
+const ghostTracks = new Map(); // callsign → [{lat, lon, ts}, ...]
+const GHOST_MAX_POINTS = 20;
+const GHOST_MAX_AGE_MS = 60_000; // 1 minute
 
 export async function updateADSB() {
     if (!window.map) return;
 
-    // Supprimer ancienne couche
     if (adsbLayer) {
         window.map.removeLayer(adsbLayer);
         adsbLayer = null;
     }
 
-    // Exemple : backend perso / OpenSky / ADSBexchange
     const url = "https://opensky-network.org/api/states/all";
 
     let data;
@@ -247,21 +248,24 @@ export async function updateADSB() {
 
     adsbLayer = window.L.layerGroup().addTo(window.map);
 
+    const now = Date.now();
+
     data.states.forEach(s => {
-        const callsign = s[1]?.trim() || "";
+        const callsign = (s[1] || "").trim();
         const lat = s[6];
         const lon = s[5];
         const alt = Math.round(s[13] || 0);
-        const speed = Math.round((s[9] || 0) * 1.94384); // m/s → kt
+        const speed = Math.round((s[9] || 0) * 1.94384);
         const vr = s[11] || 0;
 
-        if (!lat || !lon) return;
+        if (!lat || !lon || !callsign) return;
 
-        // Détection phase
-        let color = "#00e5ff"; // transit
-        if (vr < -300) color = "#ff9100"; // arrivée
-        if (vr > 300) color = "#00e676"; // départ
+        // phase
+        let color = "#00e5ff";
+        if (vr < -300) color = "#ff9100";
+        if (vr > 300) color = "#00e676";
 
+        // marker
         const marker = window.L.circleMarker([lat, lon], {
             radius: 6,
             color,
@@ -275,6 +279,30 @@ export async function updateADSB() {
             Vitesse : ${speed} kt<br>
             V/S : ${vr} ft/min
         `);
+
+        // --- GHOST TRACKS ---
+        const key = callsign;
+
+        if (!ghostTracks.has(key)) {
+            ghostTracks.set(key, []);
+        }
+
+        const track = ghostTracks.get(key);
+        track.push({ lat, lon, ts: now });
+
+        // purge ancien
+        while (track.length > GHOST_MAX_POINTS) track.shift();
+        while (track.length && now - track[0].ts > GHOST_MAX_AGE_MS) track.shift();
+
+        if (track.length >= 2) {
+            const coords = track.map(p => [p.lat, p.lon]);
+            window.L.polyline(coords, {
+                color,
+                weight: 2,
+                opacity: 0.4,
+                dashArray: "4,4"
+            }).addTo(adsbLayer);
+        }
     });
 }
 
