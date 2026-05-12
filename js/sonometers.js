@@ -90,7 +90,6 @@ function getTown(s) {
 
 function getStatus(s) { return s.status || "Actif"; }
 
-// Haversine
 function distanceKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const toRad = d => d * Math.PI / 180;
@@ -103,7 +102,6 @@ function distanceKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Couleur ATC selon niveau sonore
 function levelColor(level) {
     if (level == null) return "#00e5ff";
     if (level < 45) return "#00e676";
@@ -247,7 +245,7 @@ function renderSonometers(data) {
         if (!lat || !lng) return;
 
         const level = getLevel(s);
-                const town = getTown(s);
+        const town = getTown(s);
         const status = getStatus(s);
 
         const marker = window.L.marker([lat, lng], {
@@ -387,4 +385,3 @@ function updateDetailPanel(s) {
 
     panel.classList.remove("hidden");
 }
-
