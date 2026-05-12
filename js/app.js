@@ -66,6 +66,7 @@ window.addEventListener("DOMContentLoaded", () => {
     checkApiStatus();
     loadLogs();
     startLiveLogs();
+    updateADSB();
 
     // --------------------------------------------------
     // Rafraîchissements périodiques
