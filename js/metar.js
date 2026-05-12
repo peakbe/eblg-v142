@@ -33,9 +33,18 @@ export async function safeLoadMetar() {
 // Chargement brut
 // ------------------------------------------------------
 export async function loadMetar() {
-    const data = await fetchJSON(ENDPOINTS.metar);
-    updateMetarUI(data);
-    updateStatusPanel("METAR", data);
+    const api = await fetchJSON(ENDPOINTS.metar);
+
+    const src = api?.data?.[0] ?? null;
+
+    const mapped = src ? {
+        raw: src.raw_text,
+        wind_direction: { value: src.wind?.degrees ?? null },
+        wind_speed: { value: src.wind?.speed_kts ?? null }
+    } : null;
+
+    updateMetarUI(mapped);
+    updateStatusPanel("METAR", api);
 }
 
 // ------------------------------------------------------
