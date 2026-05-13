@@ -17,7 +17,7 @@ const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir));
 
 // --------------------------------------------------
-// ADS-B OpenSky PRO+++ (auth + cache + normalisation)
+// ADS-B Airlabs PRO+++ (cache + normalisation)
 // --------------------------------------------------
 
 let adsbCache = null;
@@ -32,51 +32,34 @@ app.get("/api/adsb", async (req, res) => {
     }
 
     try {
-        const url =
-            "https://opensky-network.org/api/states/all?lamin=50.2&lomin=5.0&lamax=51.0&lomax=6.0";
+        const url = `https://airlabs.co/api/v9/flights?api_key=${process.env.AIRLABS_KEY}`;
 
-        const auth = "Basic " + Buffer.from(
-            process.env.OS_USER + ":" + process.env.OS_PASS
-        ).toString("base64");
-
-        const r = await fetch(url, {
-            headers: { "Authorization": auth }
-        });
+        const r = await fetch(url);
 
         if (!r.ok) {
-            console.error("[ADSB] OpenSky HTTP", r.status);
+            console.error("[ADSB] Airlabs HTTP", r.status);
             if (adsbCache) return res.json(adsbCache);
-            return res.status(502).json({ error: "OpenSky upstream error" });
+            return res.status(502).json({ error: "Airlabs upstream error" });
         }
 
         const json = await r.json();
-        const states = json.states || [];
+        const flights = json.response || [];
 
-        const ac = states
-            .map(s => {
-                const icao = s[0];
-                const call = (s[1] || "").trim();
-                const lon = s[5];
-                const lat = s[6];
-                const alt_m = s[7];
-                const vel_ms = s[9];
-                const track = s[10];
-
-                if (lat == null || lon == null) return null;
-
-                const alt_ft = alt_m != null ? Math.round(alt_m * 3.28084) : null;
-                const gs_kt = vel_ms != null ? vel_ms * 1.94384 : null;
+        // Normalisation → format attendu par map.js : { ac: [...] }
+        const ac = flights
+            .map(f => {
+                if (!f.lat || !f.lng) return null;
 
                 return {
-                    icao,
-                    hex: icao,
-                    call,
-                    lat,
-                    lon,
-                    alt_baro: alt_ft,
-                    gs: gs_kt,
-                    track,
-                    type: null
+                    icao: f.hex || null,
+                    hex: f.hex || null,
+                    call: f.flight_icao || f.flight_iata || "",
+                    lat: f.lat,
+                    lon: f.lng,
+                    alt_baro: f.alt || null,
+                    gs: f.speed || null,
+                    track: f.dir || null,
+                    type: f.aircraft_icao || null
                 };
             })
             .filter(Boolean);
@@ -89,12 +72,11 @@ app.get("/api/adsb", async (req, res) => {
         res.json(payload);
 
     } catch (e) {
-        console.error("[ADSB] OpenSky fetch failed", e);
+        console.error("[ADSB] Airlabs fetch failed", e);
         if (adsbCache) return res.json(adsbCache);
         res.status(500).json({ error: "ADSB fetch failed" });
     }
 });
-
 
 // FALLBACK SPA
 app.get("*", (req, res) => {
