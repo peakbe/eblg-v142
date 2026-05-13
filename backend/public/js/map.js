@@ -48,6 +48,7 @@ export function initMap() {
     adsbLayer.addTo(map);
     adsbTracksLayer.addTo(map);
     adsbLabelsLayer.addTo(map);
+drawNoiseZones();
 
     // Heatmap ADS-B
     adsbHeatmap = L.heatLayer([], {
