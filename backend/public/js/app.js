@@ -80,6 +80,13 @@ window.addEventListener("DOMContentLoaded", () => {
             noiseHeatBtn.textContent = noiseHeatmapEnabled ? "Heatmap ON" : "Heatmap OFF";
         });
     }
+const noiseZonesBtn = document.getElementById("btn-noisezones-toggle");
+let noiseZonesEnabled = false;
+
+noiseZonesBtn.addEventListener("click", () => {
+    noiseZonesEnabled = !noiseZonesEnabled;
+    toggleNoiseZones(noiseZonesEnabled);
+});
 
     console.log("[APP] Cockpit IFR opérationnel");
 });
