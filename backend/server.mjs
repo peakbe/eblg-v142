@@ -18,50 +18,77 @@ const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir));
 
 // --------------------------------------------------
-// ADSBexchange PRO+++ (EBLG, cache, fallback)
+// ADS-B OpenSky PRO+++ (cache + normalisation)
 // --------------------------------------------------
+import fetch from "node-fetch";
+
 let adsbCache = null;
 let adsbCacheTime = 0;
 
 app.get("/api/adsb", async (req, res) => {
     const now = Date.now();
 
-    // Cache 5 s
-    if (adsbCache && now - adsbCacheTime < 5000) {
+    // Cache 10 s
+    if (adsbCache && now - adsbCacheTime < 10000) {
         return res.json(adsbCache);
     }
 
     try {
-        const url = "https://api.adsbexchange.com/v2/lat/50.64/lon/5.45/dist/80/";
-        const headers = {};
-
-        // Optionnel : clé API via variable d'env
-        if (process.env.ADSBEX_API_KEY) {
-            headers["api-auth"] = process.env.ADSBEX_API_KEY;
-        }
-
-        const r = await fetch(url, { headers });
+        const url = "https://opensky-network.org/api/states/all?lamin=50.2&lomin=5.0&lamax=51.0&lomax=6.0";
+        const r = await fetch(url);
 
         if (!r.ok) {
-            console.error("[ADSB] Upstream error", r.status);
+            console.error("[ADSB] OpenSky HTTP", r.status);
             if (adsbCache) return res.json(adsbCache);
-            return res.status(502).json({ error: "ADSBexchange upstream error" });
+            return res.status(502).json({ error: "OpenSky upstream error" });
         }
 
         const json = await r.json();
+        const states = json.states || [];
 
-        adsbCache = json;
+        // Normalisation → format attendu par map.js : { ac: [...] }
+        const ac = states
+            .map(s => {
+                const icao = s[0];
+                const call = (s[1] || "").trim();
+                const lon = s[5];
+                const lat = s[6];
+                const alt_m = s[7];
+                const vel_ms = s[9];
+                const track = s[10];
+
+                if (lat == null || lon == null) return null;
+
+                const alt_ft = alt_m != null ? Math.round(alt_m * 3.28084) : null;
+                const gs_kt = vel_ms != null ? vel_ms * 1.94384 : null;
+
+                return {
+                    icao,
+                    hex: icao,
+                    call,
+                    lat,
+                    lon,
+                    alt_baro: alt_ft,
+                    gs: gs_kt,
+                    track,
+                    type: null
+                };
+            })
+            .filter(Boolean);
+
+        const payload = { ac };
+
+        adsbCache = payload;
         adsbCacheTime = now;
 
-        res.json(json);
+        res.json(payload);
 
     } catch (e) {
-        console.error("[ADSB] Fetch failed", e);
+        console.error("[ADSB] OpenSky fetch failed", e);
         if (adsbCache) return res.json(adsbCache);
         res.status(500).json({ error: "ADSB fetch failed" });
     }
 });
-
 
 // FALLBACK SPA
 app.get("*", (req, res) => {
