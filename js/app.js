@@ -6,7 +6,6 @@ import { initMap } from "./map.js";
 import { safeLoadMetar } from "./metar.js";
 import { safeLoadTaf } from "./taf.js";
 import { safeLoadFids } from "./fids.js";
-import { loadSonometers, toggleHeatmap } from "./sonometers.js";
 import { checkApiStatus } from "./status.js";
 import { loadLogs } from "./logs.js";
 import { startLiveLogs } from "./logsLive.js";
@@ -36,20 +35,6 @@ window.addEventListener("DOMContentLoaded", () => {
     // Onglet par défaut
     const defaultTab = document.querySelector('#sidebar-tabs button[data-tab="metar"]');
     if (defaultTab) defaultTab.click();
-
-    // --------------------------------------------------
-    // Heatmap toggle
-    // --------------------------------------------------
-    let heatmapEnabled = true;
-
-    const heatmapBtn = document.getElementById("btn-heatmap-toggle");
-    if (heatmapBtn) {
-        heatmapBtn.addEventListener("click", () => {
-            heatmapEnabled = !heatmapEnabled;
-            toggleHeatmap(heatmapEnabled);
-            heatmapBtn.textContent = heatmapEnabled ? "Heatmap ON" : "Heatmap OFF";
-        });
-    }
 
     // --------------------------------------------------
     // Initialisation carte
