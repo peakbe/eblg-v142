@@ -83,3 +83,4 @@ window.addEventListener("DOMContentLoaded", () => {
 
     console.log("[APP] Cockpit IFR opérationnel");
 });
+
