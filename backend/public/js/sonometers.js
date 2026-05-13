@@ -1,19 +1,11 @@
 // ======================================================
 // SONOMETERS PRO+++ — Cockpit IFR EBLG
-// - Chargement dynamique backend
-// - Icônes ATC
-// - Clustering
-// - Heatmap bruit dynamique
-// - Recoloration selon piste active
-// - Panneau détail
 // ======================================================
 
 import { ENDPOINTS } from "./config.js";
 import { fetchJSON } from "./helpers.js";
 
-let markersLayer = null;
 let clusterLayer = null;
-let activeRunway = null;
 
 // ------------------------------------------------------
 // Icônes ATC PRO
@@ -52,9 +44,7 @@ export async function safeLoadSonometers() {
 // ------------------------------------------------------
 export async function loadSonometers() {
     const data = await fetchJSON(ENDPOINTS.sonometers);
-
     updateSonometersUI(data);
-
 }
 
 // ------------------------------------------------------
@@ -64,6 +54,7 @@ export function updateSonometersUI(data) {
     if (!window.map) return;
 
     if (clusterLayer) window.map.removeLayer(clusterLayer);
+
     clusterLayer = window.L.markerClusterGroup({
         disableClusteringAtZoom: 15,
         spiderfyOnMaxZoom: false
@@ -97,37 +88,17 @@ export function updateSonometersUI(data) {
 }
 
 // ------------------------------------------------------
-// Recoloration selon piste active
-// ------------------------------------------------------
-export function applyRunwayColoring(rwy) {
-    activeRunway = rwy;
-
-    if (!clusterLayer) return;
-
-    clusterLayer.eachLayer(marker => {
-        const lvl = marker.options?.data?.level ?? 40;
-
-        let icon = iconGreen;
-        if (lvl >= 55) icon = iconRed;
-        else if (lvl >= 45) icon = iconBlue;
-
-        marker.setIcon(icon);
-    });
-}
-
-// ------------------------------------------------------
 // Panneau détail
 // ------------------------------------------------------
 function openSonometerPanel(s) {
-    const el = document.getElementById("sonometer-panel");
+    const el = document.getElementById("detail-panel");
     if (!el) return;
 
-    el.innerHTML = `
-        <div class="sono-title">${s.name || "Sonomètre"}</div>
-        <div><b>Niveau :</b> ${s.level ?? "—"} dB</div>
-        <div><b>Coordonnées :</b> ${s.lat}, ${s.lon}</div>
-        <div><b>Description :</b> ${s.desc || "—"}</div>
-    `;
+    document.getElementById("detail-title").textContent = s.name || "Sonomètre";
+    document.getElementById("detail-address").textContent = s.address || "—";
+    document.getElementById("detail-town").textContent = s.town || "—";
+    document.getElementById("detail-status").textContent = s.status || "—";
+    document.getElementById("detail-distance").textContent = s.distance || "—";
 
-    el.classList.add("open");
+    el.classList.remove("hidden");
 }
