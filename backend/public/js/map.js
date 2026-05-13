@@ -251,6 +251,7 @@ export function drawDepartureCorridor(rwy) {
 
     departureCorridorLayer.addTo(map);
 }
+
 // TRACKS + FLÈCHES
 if (!adsbTracks.has(ac.hex)) {
     adsbTracks.set(ac.hex, { positions: [], lastUpdate: Date.now() });
