@@ -19,6 +19,7 @@ app.use(express.static(publicDir));
 // --------------------------------------------------
 // ADS-B OpenSky PRO+++ (cache + normalisation)
 // --------------------------------------------------
+
 let adsbCache = null;
 let adsbCacheTime = 0;
 
@@ -31,7 +32,9 @@ app.get("/api/adsb", async (req, res) => {
     }
 
     try {
-        const url = "https://opensky-network.org/api/states/all?lamin=50.2&lomin=5.0&lamax=51.0&lomax=6.0";
+        const url =
+            "https://opensky-network.org/api/states/all?lamin=50.2&lomin=5.0&lamax=51.0&lomax=6.0";
+
         const r = await fetch(url);
 
         if (!r.ok) {
@@ -43,7 +46,6 @@ app.get("/api/adsb", async (req, res) => {
         const json = await r.json();
         const states = json.states || [];
 
-        // Normalisation → format attendu par map.js : { ac: [...] }
         const ac = states
             .map(s => {
                 const icao = s[0];
@@ -86,6 +88,7 @@ app.get("/api/adsb", async (req, res) => {
         res.status(500).json({ error: "ADSB fetch failed" });
     }
 });
+
 
 // FALLBACK SPA
 app.get("*", (req, res) => {
